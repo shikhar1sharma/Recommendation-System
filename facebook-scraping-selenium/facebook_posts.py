@@ -5,6 +5,7 @@ import pickle
 import json
 import time
 import urllib
+import urllib.parse
 
 from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
@@ -24,7 +25,7 @@ USERNAME = 'fb_username'
 PASSWORD = 'fb_password'
 
 # What to search for, in Unicode.
-SEARCH = 'сирия вагнер'
+SEARCH = 'english movie talk by movie fans'
 
 # Path where to store the JSON result file.
 DESTINATION_PATH = 'result.json'
@@ -36,9 +37,9 @@ SCROLL_COUNT = 30
 WAIT_TIME = 10
 
 
-# Chrome driver should be un
-executable_path=os.path.join('chromedriver')
-
+# Chrome driver should be on
+current_path = os.getcwd()
+executable_path = current_path + '/chromedriver'
 options = webdriver.ChromeOptions()
 options.add_argument('--ignore-certificate-errors')
 
@@ -83,10 +84,10 @@ def fb_login(driver):
     password = driver.find_element_by_name("pass")
     password.send_keys(PASSWORD)
     password.send_keys(Keys.RETURN)
-    raw_input(
-        "Confirm that you authenticated with the right user.\n"
-        "Check no browser popups are there."
-        )
+    # raw_input(
+    #     "Confirm that you authenticated with the right user.\n"
+    #     "Check no browser popups are there."
+    #     )
 
 
 def scroll_progressive_to_bottom(driver):
@@ -96,7 +97,7 @@ def scroll_progressive_to_bottom(driver):
     time.sleep(5)
 
     bottom = 0
-    for attempt_count in xrange(SCROLL_COUNT):
+    for attempt_count in range(SCROLL_COUNT):
         # Scroll down so that we load another chunk.
         driver.execute_script("window.scrollBy(0,10000);")
         new_bottom = driver.execute_script(
@@ -128,7 +129,7 @@ def scroll_progressive_to_bottom(driver):
     try:
         driver.find_element_by_css_selector('#browse_end_of_results_footer')
     except NoSuchElementException:
-        print "We hit the end, without an end marker"
+        print ("We hit the end, without an end marker")
 
 
 def move_to_element(driver, element):
@@ -145,7 +146,7 @@ def go_to_page_list(search):
     Go to the page listing all public posts matching `search` provides as
     Unicode text.
     """
-    search_encoded = urllib.quote(search)
+    search_encoded = urllib.parse.quote(search)
     browser.get(
         "https://www.facebook.com/search/str/%s/stories-keyword/stories-public" % (search_encoded,))
 
@@ -171,7 +172,7 @@ def fb_dump_posts(driver):
     posts = driver.find_elements_by_class_name(post_class)
     for post in posts:
         if not post.text:
-            print "It looks like there are still posts... but can't scroll"
+            print ("It looks like there are still posts... but can't scroll")
             continue
 
         data = {
@@ -203,7 +204,7 @@ def fb_dump_posts(driver):
         images = post.find_elements_by_css_selector('div.userContent + div a img.img')
         for image in images:
             data['Post']['Link'].append(image.get_attribute('src'))
-        print "Got %s" % (len(images))
+        print ("Got %s" % (len(images)))
 
         # Get post reactions
         # First is a div containing the comments + shared
@@ -241,6 +242,6 @@ fb_login(browser)
 go_to_page_list(SEARCH)
 scroll_progressive_to_bottom(browser)
 result = fb_dump_posts(browser)
-print "Writing %s" % len(result)
-with open(DESTINATION_PATH, 'wb') as stream:
+print ("Writing %s" % len(result))
+with open(DESTINATION_PATH, 'w') as stream:
     json.dump(result, stream)
